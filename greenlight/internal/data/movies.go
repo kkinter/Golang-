@@ -139,25 +139,24 @@ func (m MovieModel) Delete(id int64) error {
 	return nil
 }
 
-// movies 슬라이스를 반환하는 새로운 GetAll() 메서드를 만듭니다.
-// 지금은 사용하지 않지만 다양한 필터 매개변수를 인수로 받도록 설정했습니다.
 func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	// 쿼리 변경
 	query := `
 		SELECT id, created_at, title, year, runtime, genres, version
 		FROM movies
+		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
+		AND (genres @> $2 OR $2 = '{}')
 		ORDER BY id`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	// QueryContext()를 사용하여 쿼리를 실행합니다. 그러면 결과가
-	// 포함된 sql.Rows 결과 집합이 반환됩니다.
-	rows, err := m.DB.QueryContext(ctx, query)
+
+	// 플레이스홀더 매개변수 값으로 제목과 장르를 전달합니다.
+	rows, err := m.DB.QueryContext(ctx, query, title, pq.Array(genres))
 	if err != nil {
 		return nil, err
 	}
 
-	// 중요한 것은 rows.Close() 호출을 지연시켜 GetAll()
-	// 이 반환되기 전에 결과 집합이 닫히도록 하는 것입니다.
 	defer rows.Close()
 
 	movies := []*Movie{}
@@ -165,8 +164,6 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 	for rows.Next() {
 		var movie Movie
 
-		// 행의 값을 Movie 구조체로 스캔합니다. 여기서도 장르 필드에
-		// pq.Array() 어댑터를 사용하고 있다는 점에 유의하세요.
 		err := rows.Scan(
 			&movie.ID,
 			&movie.CreatedAt,
