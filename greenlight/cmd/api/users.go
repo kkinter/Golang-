@@ -79,3 +79,61 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+	// 요청 본문에서 일반 텍스트 활성화 토큰을 파싱합니다.
+	var input struct {
+		TokenPlaintext string `json:"token"`
+	}
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	// 클라이언트가 제공한 일반 텍스트 토큰의 유효성을 검사합니다.
+	v := validator.New()
+	if data.ValidateTokenPlaintext(v, input.TokenPlaintext); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	// GetForToken() 메서드를 사용하여 토큰과 연결된 사용자의 세부 정보를 검색합니다
+	// (잠시 후에 생성할 것입니다). 일치하는 레코드가 발견되지 않으면 클라이언트가
+	// 제공한 토큰이 유효하지 않음을 알립니다.
+	user, err := app.models.Users.GetForToken(data.ScopeActivation, input.TokenPlaintext)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			v.AddError("token", "invalid or expired activation token")
+			app.failedValidationResponse(w, r, v.Errors)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	// 사용자의 활성화 상태를 업데이트합니다.
+	user.Activated = true
+	// 업데이트된 사용자 기록을 데이터베이스에 저장하고 movie 레코드와 동일한
+	// 방식으로 편집 충돌이 있는지 확인합니다.
+	err = app.models.Users.Update(user)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	// 모든 것이 성공적으로 진행되면 사용자의 모든 활성화 토큰을 삭제합니다.
+	err = app.models.Tokens.DeleteAllForUser(data.ScopeActivation, user.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	// 업데이트된 사용자 세부 정보를 JSON 응답으로 클라이언트에 보냅니다.
+	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}

@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"time"
@@ -208,4 +209,49 @@ func ValidateUser(v *validator.Validator, user *User) {
 	if user.Password.hash == nil {
 		panic("missing password hash for user")
 	}
+}
+
+func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error) {
+	// 클라이언트가 제공한 일반 텍스트 토큰의 SHA-256 해시를 계산합니다.
+	// 이는 슬라이스가 아닌 길이 32의 바이트 *array*을 반환한다는 점을 기억하세요.
+	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
+
+	query := `
+			SELECT users.id, users.created_at, users.name, users.email, users.password_hash, users.activated, users.version
+			FROM users
+			INNER JOIN tokens
+			ON users.id = tokens.user_id
+			WHERE tokens.hash = $1
+			AND tokens.scope = $2
+			AND tokens.expiry > $3`
+
+	// 쿼리 인수가 포함된 슬라이스를 생성합니다. 배열을 전달하는 대신 [:] 연산자를 사용하여
+	// 토큰 해시가 포함된 슬라이스를 가져오는 방법(pq 드라이버에서는 지원되지 않음)과
+	// 토큰 만료를 확인하기 위해 현재 시간을 값으로 전달한다는 점을 주목하세요.
+	args := []any{tokenHash[:], tokenScope, time.Now()}
+	var user User
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// 쿼리를 실행하여 반환값을 User 구조체로 스캔합니다.
+	// 일치하는 레코드를 찾지 못하면 ErrRecordNotFound 오류를 반환합니다.
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.Name,
+		&user.Email,
+		&user.Password.hash,
+		&user.Activated,
+		&user.Version,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	// Return the matching user.
+	return &user, nil
 }
