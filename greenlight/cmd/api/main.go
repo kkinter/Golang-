@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -81,23 +79,11 @@ func main() {
 		models: data.NewModels(db),
 	}
 
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+	// app.serve()를 호출하여 서버를 시작합니다.
+	err = app.serve()
+	if err != nil {
+		logger.PrintFatal(err, nil)
 	}
-
-	// 다시 PrintInfo() 메서드를 사용하여 INFO 수준에서 "서버 시작" 메시지를 작성합니다.
-	// 하지만 이번에는 추가 속성(운영 환경 및 서버 주소)이 포함된 맵을 마지막 매개변수로 전달합니다.
-	logger.PrintInfo("서버 시작", map[string]string{
-		"addr": srv.Addr,
-		"env":  cfg.env,
-	})
-	err = srv.ListenAndServe()
-	// PrintFatal() 메서드를 사용하여 오류를 기록하고 종료합니다.
-	logger.PrintFatal(err, nil)
 }
 
 func openDB(cfg config) (*sql.DB, error) {
