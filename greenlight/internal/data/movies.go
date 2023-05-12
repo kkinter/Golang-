@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -23,32 +24,22 @@ type MovieModel struct {
 	DB *sql.DB
 }
 
-// Insert() 메서드는 새 레코드에 대한
-// 데이터를 포함해야 하는 movie 구조체에 대한 포인터를 받습니다.
 func (m MovieModel) Insert(movie *Movie) error {
 
-	// 영화 테이블에 새 레코드를 삽입하고
-	// 시스템에서 생성된 데이터를 반환하기 위한 SQL 쿼리를 정의합니다.
 	query := `
 		INSERT INTO movies (title, year, runtime, genres)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at, version`
-	// movie 구조체에서 플레이스홀더 매개변수의 값을 포함하는 args 슬라이스를 생성합니다.
-	// 이 슬라이스를 SQL 쿼리 바로 옆에 선언하면 쿼리에서
-	// *어떤 값이 어디에 사용되는지* 명확하게 파악할 수 있습니다.
 	args := []any{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres)}
-	// QueryRow() 메서드를 사용하여 연결 풀에서 SQL 쿼리를 실행하고,
-	// 가변 파라미터로 args 슬라이스를 전달하고,
-	// 시스템에서 생성된 id, created_at 및 버전 값을 movie 구조체로 스캔합니다.
-	return m.DB.QueryRow(query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 }
 
 func (m MovieModel) Get(id int64) (*Movie, error) {
 
-	// movie  ID에 사용하는 PostgreSQL bigserial  유형은 기본적으로 1에서 자동 증가를 시작하므로
-	//  이보다 작은 ID 값을 갖는 영화는 없다는 것을 알 수 있습니다.
-	// 불필요한 데이터베이스 호출을 피하기 위해 바로 가기를 사용하여
-	// ErrRecordNotFound 오류를 바로 반환합니다.
 	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
@@ -58,15 +49,14 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 		FROM movies
 		WHERE id = $1`
 
-	// 쿼리에서 반환된 데이터를 저장할 Movie 구조체를 선언합니다.
 	var movie Movie
-
-	// QueryRow() 메서드를 사용하여 쿼리를 실행하고,
-	// 제공된 id 값을 자리 표시자 매개변수로 전달한 다음,
-	// 응답 데이터를 Movie 구조체의 필드로 스캔합니다.
-	//  중요한 점은 pq.Array() 어댑터 함수를 사용하여 장르 열의 스캔 대상을
-	// 다시 변환해야 한다는 점입니다.
-	err := m.DB.QueryRow(query, id).Scan(
+	// context.WithTimeout() 함수를 사용하여 3초의 타임아웃 기한이 있는 context.Context를 생성합니다.
+	// 빈 context.Background()를 '부모' 컨텍스트로 사용하고 있다는 점에 유의하세요.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	// 중요한 것은, Get() 메서드가 반환되기 전에 컨텍스트를 취소하려면 defer를 사용해야 한다는 것입니다.
+	defer cancel()
+	// 쿼리를 실행하려면 QueryRowContext() 메서드를 사용하여 첫 번째 인수로 마감일이 포함된 컨텍스트를 전달합니다.
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&movie.ID,
 		&movie.CreatedAt,
 		&movie.Title,
@@ -75,8 +65,7 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 		pq.Array(&movie.Genres),
 		&movie.Version,
 	)
-	// 오류를 처리합니다. 일치하는 동영상을 찾지 못하면 Scan()은 sql.ErrNoRows 오류를
-	// 반환합니다. 이 오류를 확인하고 대신 커스텀 ErrRecordNotFound 오류를 반환합니다.
+
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -105,9 +94,10 @@ func (m MovieModel) Update(movie *Movie) error {
 		movie.Version, // 예상되는 movie version 추가
 	}
 
-	// SQL 쿼리를 실행합니다. 일치하는 행을 찾을 수 없는 경우 movie
-	// 버전이 변경되었거나 레코드가 삭제된 것으로 간주하고 사용자 지정 ErrEditConflict 오류를 반환합니다.
-	err := m.DB.QueryRow(query, args...).Scan(&movie.Version)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&movie.Version)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -129,7 +119,10 @@ func (m MovieModel) Delete(id int64) error {
 		DELETE FROM movies
 		WHERE id = $1`
 
-	result, err := m.DB.Exec(query, id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := m.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
