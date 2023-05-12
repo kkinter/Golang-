@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"sync"
+	"time"
 
 	"golang.org/x/time/rate"
 )
@@ -28,20 +31,61 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 }
 
 func (app *application) rateLimit(next http.Handler) http.Handler {
-	// 초당 평균 2건의 요청을 허용하고 단일 '버스트'에 최대 4건의
-	// 요청을 허용하는 새로운 전송률 제한기를 초기화합니다.
 
-	limiter := rate.NewLimiter(2, 4)
+	// 각 클라이언트의 rate limiter와 last seen  시간을 저장할 클라이언트 구조체를 정의합니다.
+	type client struct {
+		limiter  *rate.Limiter
+		lastSeen time.Time
+	}
 
-	// 우리가 반환하는 함수는 리미터 변수를 'closes over' 클로저입니다.
+	var (
+		mu sync.Mutex
+		// 값이 클라이언트 구조체에 대한 포인터가 되도록 맵을 업데이트합니다.
+		clients = make(map[string]*client)
+	)
+
+	// 1분에 한 번씩 클라이언트 맵에서 오래된 항목을 제거하는 백그라운드 고루틴을 실행합니다.
+	go func() {
+		for {
+			time.Sleep(time.Minute)
+			// 정리하는 동안  rate limiter 검사가 발생하지 않도록 뮤텍스를 잠급니다.
+			mu.Lock()
+			// 모든 클라이언트를 반복합니다. 지난 3분 이내에 고객이 보이지 않았다면
+			// map에서 해당 항목을 삭제합니다.
+			for ip, client := range clients {
+				if time.Since(client.lastSeen) > 3*time.Minute {
+					delete(clients, ip)
+				}
+			}
+			// 중요한 것은 정리가 완료되면 뮤텍스의 잠금을 해제해야 한다는 것입니다.
+			mu.Unlock()
+		}
+	}()
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// limiter.Allow()을 호출하여 요청이 허용되는지 확인하고,
-		// 허용되지 않는 경우 rateLimitExceededResponse() 헬퍼를 호출하여
-		// 429 너무 많은 요청 응답을 반환합니다(이 헬퍼는 잠시 후에 생성할 예정입니다).
-		if !limiter.Allow() {
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+
+		mu.Lock()
+
+		if _, found := clients[ip]; !found {
+			// 아직 존재하지 않는 경우 새 클라이언트 구조체를 생성하고 맵에 추가합니다.
+			clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
+		}
+
+		// 클라이언트의 마지막으로 본 시간을 업데이트합니다.
+		clients[ip].lastSeen = time.Now()
+
+		if !clients[ip].limiter.Allow() {
+			mu.Unlock()
 			app.rateLimitExccededResponse(w, r)
 			return
 		}
+
+		mu.Unlock()
 
 		next.ServeHTTP(w, r)
 	})
