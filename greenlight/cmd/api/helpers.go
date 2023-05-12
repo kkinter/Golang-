@@ -158,3 +158,22 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 
 	return i
 }
+
+func (app *application) background(fn func()) {
+	// WaitGroup 카운터를 증가시킵니다.
+	app.wg.Add(1)
+
+	go func() {
+
+		// defer를 사용하면 고루틴이 반환되기 전에 WaitGroup 카운터가 감소합니다.
+		defer app.wg.Done()
+
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.PrintError(fmt.Errorf("%s", err), nil)
+			}
+		}()
+
+		fn()
+	}()
+}

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"flag"
 	"os"
+	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -39,12 +40,15 @@ type config struct {
 	}
 }
 
-// 새 메일러 인스턴스를 보유하도록 애플리케이션 구조를 업데이트합니다.
+// 애플리케이션 구조체에 sync.WaitGroup을 포함합니다. sync.WaitGroup 유형의 0 값은 '카운터' 값이 0인 유효하고
+//
+//	사용 가능한 sync.WaitGroup이므로 사용하기 전에 초기화하기 위해 다른 작업을 할 필요가 없습니다.
 type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
 	mailer mailer.Mailer
+	wg     sync.WaitGroup
 }
 
 func main() {
