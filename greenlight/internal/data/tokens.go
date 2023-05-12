@@ -11,21 +11,18 @@ import (
 	"greenlight.wook.net/internal/validator"
 )
 
-// 토큰 범위에 대한 상수를 정의합니다.
-// 지금은 "활성화" 범위만 정의하지만 나중에 책에서 추가 범위를 추가할 것입니다.
 const (
-	ScopeActivation = "activation"
+	ScopeActivation     = "activation"
+	ScopeAuthentication = "authentication"
 )
 
-// 토큰 구조체를 정의하여 개별 토큰에 대한 데이터를 저장합니다.
-//
-//	여기에는 토큰의 일반 텍스트 및 해시 버전, 연결된 사용자 ID, 만료 시간 및 범위가 포함됩니다.
+// 구조체 태그를 추가하여 JSON으로 인코딩할 때 구조체가 표시되는 방식을 제어합니다.
 type Token struct {
-	Plaintext string
-	Hash      []byte
-	UserID    int64
-	Expiry    time.Time
-	Scope     string
+	Plaintext string    `json:"token"`
+	Hash      []byte    `json:"-"`
+	UserID    int64     `json:"-"`
+	Expiry    time.Time `json:"expiry"`
+	Scope     string    `json:"-"`
 }
 
 func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error) {

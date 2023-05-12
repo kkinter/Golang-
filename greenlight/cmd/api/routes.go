@@ -22,8 +22,10 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.deleteMovieHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
-	// PUT /v1/users/activated 엔드포인트에 대한 경로를 추가합니다.
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
+
+	// POST /v1/tokens/인증 엔드포인트에 대한 경로를 추가합니다.
+	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
 	return app.recoverPanic(app.rateLimit(router))
 }
