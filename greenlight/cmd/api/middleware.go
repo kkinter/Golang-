@@ -32,26 +32,20 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 
 func (app *application) rateLimit(next http.Handler) http.Handler {
 
-	// 각 클라이언트의 rate limiter와 last seen  시간을 저장할 클라이언트 구조체를 정의합니다.
 	type client struct {
 		limiter  *rate.Limiter
 		lastSeen time.Time
 	}
 
 	var (
-		mu sync.Mutex
-		// 값이 클라이언트 구조체에 대한 포인터가 되도록 맵을 업데이트합니다.
+		mu      sync.Mutex
 		clients = make(map[string]*client)
 	)
 
-	// 1분에 한 번씩 클라이언트 맵에서 오래된 항목을 제거하는 백그라운드 고루틴을 실행합니다.
 	go func() {
 		for {
 			time.Sleep(time.Minute)
-			// 정리하는 동안  rate limiter 검사가 발생하지 않도록 뮤텍스를 잠급니다.
 			mu.Lock()
-			// 모든 클라이언트를 반복합니다. 지난 3분 이내에 고객이 보이지 않았다면
-			// map에서 해당 항목을 삭제합니다.
 			for ip, client := range clients {
 				if time.Since(client.lastSeen) > 3*time.Minute {
 					delete(clients, ip)
@@ -63,29 +57,35 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	}()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
+		// 속도 제한이 활성화된 경우에만 검사를 수행합니다.
+		if app.config.limiter.enabled {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
 
-		mu.Lock()
+			mu.Lock()
 
-		if _, found := clients[ip]; !found {
-			// 아직 존재하지 않는 경우 새 클라이언트 구조체를 생성하고 맵에 추가합니다.
-			clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
-		}
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{
+					// config 구조체의 초당 요청 및 버스트 값을 사용합니다.
+					limiter: rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst),
+				}
 
-		// 클라이언트의 마지막으로 본 시간을 업데이트합니다.
-		clients[ip].lastSeen = time.Now()
+			}
 
-		if !clients[ip].limiter.Allow() {
+			clients[ip].lastSeen = time.Now()
+
+			if !clients[ip].limiter.Allow() {
+				mu.Unlock()
+				app.rateLimitExccededResponse(w, r)
+				return
+			}
+
 			mu.Unlock()
-			app.rateLimitExccededResponse(w, r)
-			return
-		}
 
-		mu.Unlock()
+		}
 
 		next.ServeHTTP(w, r)
 	})

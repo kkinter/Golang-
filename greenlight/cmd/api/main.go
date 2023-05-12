@@ -25,6 +25,13 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  string
 	}
+	// 초당 요청 수와 버스트 값에 대한 필드와 속도 제한을 활성화/비활성화하는
+	// 데 사용할 수 있는 bool 필드를 포함하는 새로운 리미터 구조체를 추가합니다.
+	limiter struct {
+		rps     float64
+		burst   int
+		enabled bool
+	}
 }
 
 // logger  필드를 *log.Logger 대신 *jsonlog.Logger 유형으로 변경합니다.
@@ -44,6 +51,12 @@ func main() {
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max connection idle time")
+
+	// 설정 값을 구성 구조체로 읽어들이는 명령줄 플래그를 생성합니다.
+	// 'enabled' 설정의 기본값으로 참을 사용하는 것이 보이시죠?
+	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "limiter 초당 최대 요청 수")
+	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "limiter 최대 버스트")
+	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "limiter 활성화")
 
 	flag.Parse()
 
