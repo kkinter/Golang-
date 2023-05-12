@@ -24,8 +24,8 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 
-	// POST /v1/tokens/인증 엔드포인트에 대한 경로를 추가합니다.
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
-	return app.recoverPanic(app.rateLimit(router))
+	// authenticate() middleware 를 모든 요청에 대해 사용합니다.
+	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
 }

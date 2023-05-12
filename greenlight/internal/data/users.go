@@ -16,10 +16,9 @@ var (
 	ErrDuplicateEmail = errors.New("duplicate email")
 )
 
-// 개별 사용자를 나타내는 User 구조체를 정의합니다.
-// 중요한 것은 json:"-" 구조체 태그를 사용하여 JSON으로 인코딩할
-// 때 비밀번호 및 버전 필드가 출력에 나타나지 않도록 하는 것입니다.
-// 또한 Password 필드에 아래에 정의된 사용자 지정 비밀번호 유형을 사용하는 것도 주목하세요.
+// 새로운 AnonymousUser 변수를 선업합니다.
+var AnonymousUser = &User{}
+
 type User struct {
 	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
@@ -28,6 +27,10 @@ type User struct {
 	Password  password  `json:"-"`
 	Activated bool      `json:"activated"`
 	Version   int       `json:"-"`
+}
+
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
 }
 
 // 연결 풀을 감싸는 UserModel 구조체를 생성합니다.
