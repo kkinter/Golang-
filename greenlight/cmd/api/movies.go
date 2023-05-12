@@ -219,7 +219,6 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
 
 	input.Filters.Sort = app.readString(qs, "sort", "id")
-
 	input.Filters.SortSafelist = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
 
 	if data.ValidateFilter(v, input.Filters); !v.Valid() {
@@ -227,15 +226,15 @@ func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// 다양한 필터 매개변수를 전달하여 GetAll() 메서드를 호출하여 movies을 검색합니다.
-	movies, err := app.models.Movies.GetAll(input.Title, input.Genres, input.Filters)
+	// 메타데이터 구조체를 반환값으로 받습니다.
+	movies, metadata, err := app.models.Movies.GetAll(input.Title, input.Genres, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	// movie 데이터가 포함된 JSON 응답을 전송합니다.
-	err = app.writeJSON(w, http.StatusOK, envelope{"movies": movies}, nil)
+	// 응답 envelope에 메타데이터를 포함합니다.
+	err = app.writeJSON(w, http.StatusOK, envelope{"movies": movies, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

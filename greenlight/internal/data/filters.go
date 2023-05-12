@@ -1,6 +1,7 @@
 package data
 
 import (
+	"math"
 	"strings"
 
 	"greenlight.wook.net/internal/validator"
@@ -11,6 +12,34 @@ type Filters struct {
 	PageSize     int
 	Sort         string
 	SortSafelist []string
+}
+
+type Metadata struct {
+	CurrentPage  int `json:"current_page,omitempty"`
+	PageSize     int `json:"page_size,omitempty"`
+	FirstPage    int `json:"first_page,omitempty"`
+	LastPage     int `json:"last_page,omitempty"`
+	TotalRecords int `json:"total_records,omitempty"`
+}
+
+// calculateMetadata() 함수는 총 레코드 수, 현재 페이지 및 페이지 크기 값이
+// 주어지면 적절한 페이지 매김 메타데이터 값을 계산합니다. 마지막 페이지 값은
+// 부동 소수점을 가장 가까운 정수로 반올림하는 math.Ceil() 함수를 사용하여
+// 계산된다는 점에 유의하세요. 예를 들어 총 레코드 수가 12개이고 페이지 크기가 5인 경우
+// 마지막 페이지 값은 math.Ceil(12/5) = 3이 됩니다.
+func calculateMetadata(totalRecords, page, pageSize int) Metadata {
+	// 레코드가 없는 경우 빈 메타데이터 구조체를 반환한다는 점에 유의하세요.
+	if totalRecords == 0 {
+		return Metadata{}
+	}
+
+	return Metadata{
+		CurrentPage:  page,
+		PageSize:     pageSize,
+		FirstPage:    1,
+		LastPage:     int(math.Ceil(float64(totalRecords) / float64(pageSize))),
+		TotalRecords: totalRecords,
+	}
 }
 
 // 클라이언트가 제공한 정렬 필드가 허용 목록의 항목 중 하나와 일치하는지 확인하고,

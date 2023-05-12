@@ -140,10 +140,11 @@ func (m MovieModel) Delete(id int64) error {
 	return nil
 }
 
-func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
-	// 플레이스홀더 매개변수 값을 사용하여 LIMIT 및 OFFSET 절을 포함하도록 SQL 쿼리를 업데이트합니다.
+// 메타데이터 구조체를 반환하도록 함수 서명을 업데이트합니다.
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
+	// 총 (필터링된) 레코드를 계산하는 창 함수를 포함하도록 SQL 쿼리를 업데이트합니다.
 	query := fmt.Sprintf(`
-		SELECT id, created_at, title, year, runtime, genres, version
+		SELECT count(*) OVER(), id, created_at, title, year, runtime, genres, version
 		FROM movies
 		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
 		AND (genres @> $2 OR $2 = '{}')
@@ -152,25 +153,24 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	// 이제 SQL 쿼리에 꽤 많은 자리 표시자 매개 변수가 있으므로,
-	// 자리 표시자의 값을 슬라이스로 수집해 보겠습니다.
-	// 여기서 필터 구조체에서 limit() 및 offset() 메서드를 호출하여
-	//  LIMIT 및 OFFSET 절에 적합한 값을 가져오는 방법을 살펴봅시다.
+
 	args := []any{title, pq.Array(genres), filters.limit(), filters.offset()}
 
 	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err // 빈 메타데이터 구조체를 반환하도록 업데이트합니다.
 	}
 
 	defer rows.Close()
 
+	totalRecords := 0
 	movies := []*Movie{}
 
 	for rows.Next() {
 		var movie Movie
 
 		err := rows.Scan(
+			&totalRecords, // window  함수의 카운트를 totalRecords로 스캔합니다.
 			&movie.ID,
 			&movie.CreatedAt,
 			&movie.Title,
@@ -180,19 +180,19 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 			&movie.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err // 빈 메타데이터 구조체를 반환하도록 업데이트합니다.
 		}
 
 		movies = append(movies, &movie)
 	}
 
-	// rows.Next() 루프가 완료되면 rows.Err()를 호출하여
-	// 반복 중에 발생한 모든 오류를 검색합니다.
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err // 빈 메타데이터 구조체를 반환하도록 업데이트합니다.
 	}
 
-	return movies, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return movies, metadata, nil
 }
 
 func ValidateMovie(v *validator.Validator, movie *Movie) {
@@ -230,6 +230,6 @@ func (m MockMovieModel) Delete(id int64) error {
 	return nil
 }
 
-func (m MockMovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
-	return nil, nil
+func (m MockMovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
+	return nil, Metadata{}, nil
 }
