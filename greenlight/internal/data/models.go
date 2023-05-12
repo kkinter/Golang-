@@ -5,9 +5,9 @@ import (
 	"errors"
 )
 
-// 데이터베이스에 존재하지 않는 동영상을 조회할 때 Get() 메서드에서 이 오류를 반환할 것입니다.
 var (
 	ErrRecordNotFound = errors.New("record not found")
+	ErrEditConflict   = errors.New("edit confilct")
 )
 
 // MovieModel을 감싸는 Models 구조체를 생성합니다.

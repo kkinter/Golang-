@@ -109,12 +109,20 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// 제목, 연도 및 런타임 필드에 포인터를 사용합니다.
 	var input struct {
-		Title   string       `json:"title"`
-		Year    int32        `json:"year"`
-		Runtime data.Runtime `json:"runtime"`
-		Genres  []string     `json:"genres"`
+		Title   *string       `json:"title"`
+		Year    *int32        `json:"year"`
+		Runtime *data.Runtime `json:"runtime"`
+		Genres  []string      `json:"genres"`
 	}
+
+	// var input struct {
+	// 	Title   string       `json:"title"`
+	// 	Year    int32        `json:"year"`
+	// 	Runtime data.Runtime `json:"runtime"`
+	// 	Genres  []string     `json:"genres"`
+	// }
 
 	err = app.readJSON(w, r, &input)
 	if err != nil {
@@ -122,10 +130,27 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	movie.Title = input.Title
-	movie.Year = input.Year
-	movie.Runtime = input.Runtime
-	movie.Genres = input.Genres
+	// input.Title 값이 nil이면 JSON 요청 본문에서 해당 "title" 키/값 쌍이 제공되지 않았다는
+	// 것을 알 수 있습니다. 따라서 동영상 레코드를 변경하지 않고 그대로 둡니다.
+	// 그렇지 않으면 새 제목 값으로 동영상 레코드를 업데이트합니다.
+	// 중요한 점은 input.Title이 이제 문자열에 대한 포인터이기 때문에 동영상 레코드에
+	// 할당하기 전에 * 연산자를 사용하여 포인터를 역참조하여 기본 값을 가져와야 한다는 것입니다.
+	if input.Title != nil {
+		movie.Title = *input.Title
+	}
+
+	// input 구조체의 다른 필드에 대해서도 동일한 작업을 수행합니다.
+	if input.Year != nil {
+		movie.Year = *input.Year
+	}
+
+	if input.Runtime != nil {
+		movie.Runtime = *input.Runtime
+	}
+
+	if input.Genres != nil {
+		movie.Genres = input.Genres
+	}
 
 	v := validator.New()
 
@@ -134,9 +159,15 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// 모든 ErrEditConflict 오류를 가로채고 새로운 editConflictResponse() 헬퍼를 호출합니다.
 	err = app.models.Movies.Update(movie)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 

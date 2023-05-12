@@ -93,7 +93,7 @@ func (m MovieModel) Update(movie *Movie) error {
 	query := `
 		UPDATE movies
 		SET title = $1, year = $2, runtime = $3, genres = $4, version = version + 1
-		WHERE id = $5
+		WHERE id = $5 AND version = $6
 		RETURNING version `
 
 	args := []any{
@@ -102,11 +102,22 @@ func (m MovieModel) Update(movie *Movie) error {
 		movie.Runtime,
 		pq.Array(movie.Genres),
 		movie.ID,
+		movie.Version, // 예상되는 movie version 추가
 	}
 
-	// 쿼리를 실행하기 위해 QueryRow() 메서드를 사용하고,
-	// 가변 파라미터로 args 슬라이스를 전달하고, 새 버전 값을 movie  구조체로 스캔합니다.
-	return m.DB.QueryRow(query, args...).Scan(&movie.Version)
+	// SQL 쿼리를 실행합니다. 일치하는 행을 찾을 수 없는 경우 movie
+	// 버전이 변경되었거나 레코드가 삭제된 것으로 간주하고 사용자 지정 ErrEditConflict 오류를 반환합니다.
+	err := m.DB.QueryRow(query, args...).Scan(&movie.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (m MovieModel) Delete(id int64) error {

@@ -60,3 +60,8 @@ func (app *application) badRequestResopnse(w http.ResponseWriter, r *http.Reques
 func (app *application) failedValidationResponse(w http.ResponseWriter, r *http.Request, errors map[string]string) {
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, errors)
 }
+
+func (app *application) editConflictResponse(w http.ResponseWriter, r *http.Request) {
+	message := "충돌로 인해 레코드를 업데이트할 수 없습니다. 다시 시도하세요."
+	app.errorResponse(w, r, http.StatusConflict, message)
+}
