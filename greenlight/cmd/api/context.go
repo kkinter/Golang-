@@ -7,7 +7,7 @@ import (
 	"greenlight.wook.net/internal/data"
 )
 
-// 커스텀 contextKey 타입을 정의합니다. 기반 타입은 string입니다.
+// 커스텀 contextKey 타입을 정의합니다. 기반 타입은 string입니다
 type contextKey string
 
 // 문자열 "user"를 contextKey 타입으로 변환하고 userContextKey 상수에 할당합니다.
