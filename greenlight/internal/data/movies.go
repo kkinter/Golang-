@@ -139,6 +139,59 @@ func (m MovieModel) Delete(id int64) error {
 	return nil
 }
 
+// movies 슬라이스를 반환하는 새로운 GetAll() 메서드를 만듭니다.
+// 지금은 사용하지 않지만 다양한 필터 매개변수를 인수로 받도록 설정했습니다.
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	query := `
+		SELECT id, created_at, title, year, runtime, genres, version
+		FROM movies
+		ORDER BY id`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	// QueryContext()를 사용하여 쿼리를 실행합니다. 그러면 결과가
+	// 포함된 sql.Rows 결과 집합이 반환됩니다.
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	// 중요한 것은 rows.Close() 호출을 지연시켜 GetAll()
+	// 이 반환되기 전에 결과 집합이 닫히도록 하는 것입니다.
+	defer rows.Close()
+
+	movies := []*Movie{}
+
+	for rows.Next() {
+		var movie Movie
+
+		// 행의 값을 Movie 구조체로 스캔합니다. 여기서도 장르 필드에
+		// pq.Array() 어댑터를 사용하고 있다는 점에 유의하세요.
+		err := rows.Scan(
+			&movie.ID,
+			&movie.CreatedAt,
+			&movie.Title,
+			&movie.Year,
+			&movie.Runtime,
+			pq.Array(&movie.Genres),
+			&movie.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		movies = append(movies, &movie)
+	}
+
+	// rows.Next() 루프가 완료되면 rows.Err()를 호출하여
+	// 반복 중에 발생한 모든 오류를 검색합니다.
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return movies, nil
+}
+
 func ValidateMovie(v *validator.Validator, movie *Movie) {
 	v.Check(movie.Title != "", "title", "must be provided")
 	v.Check(len(movie.Title) <= 500, "title", "must not be more than 500 bytes long")
@@ -161,12 +214,19 @@ type MockMovieModel struct{}
 func (m MockMovieModel) Insert(movie *Movie) error {
 	return nil
 }
+
 func (m MockMovieModel) Get(id int64) (*Movie, error) {
 	return nil, nil
 }
+
 func (m MockMovieModel) Update(movie *Movie) error {
 	return nil
 }
+
 func (m MockMovieModel) Delete(id int64) error {
 	return nil
+}
+
+func (m MockMovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	return nil, nil
 }
