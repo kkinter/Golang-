@@ -32,6 +32,14 @@ func (f Filters) sortDirection() string {
 	return "ASC"
 }
 
+func (f Filters) limit() int {
+	return f.PageSize
+}
+
+func (f Filters) offset() int {
+	return (f.Page - 1) * f.PageSize
+}
+
 func ValidateFilter(v *validator.Validator, f Filters) {
 	v.Check(f.Page > 0, "page", "0 보다 커야만 합니다")
 	v.Check(f.Page <= 10_000_000, "page", "최대 1000만 까지 요청할 수 있습니다")

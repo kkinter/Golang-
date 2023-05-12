@@ -141,20 +141,24 @@ func (m MovieModel) Delete(id int64) error {
 }
 
 func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
-	// ORDER BY 절을 추가하고 정렬 열과 방향을 보간합니다.
-	/// 중요한 점은 일관된 순서를 유지하기 위해 movie ID에 보조 정렬을 포함한다는 점입니다.
+	// 플레이스홀더 매개변수 값을 사용하여 LIMIT 및 OFFSET 절을 포함하도록 SQL 쿼리를 업데이트합니다.
 	query := fmt.Sprintf(`
 		SELECT id, created_at, title, year, runtime, genres, version
 		FROM movies
 		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
 		AND (genres @> $2 OR $2 = '{}')
-		ORDER BY %s %s, id ASC`, filters.sortColumn(), filters.sortDirection())
+		ORDER BY %s %s, id ASC
+		LIMIT $3 OFFSET $4`, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+	// 이제 SQL 쿼리에 꽤 많은 자리 표시자 매개 변수가 있으므로,
+	// 자리 표시자의 값을 슬라이스로 수집해 보겠습니다.
+	// 여기서 필터 구조체에서 limit() 및 offset() 메서드를 호출하여
+	//  LIMIT 및 OFFSET 절에 적합한 값을 가져오는 방법을 살펴봅시다.
+	args := []any{title, pq.Array(genres), filters.limit(), filters.offset()}
 
-	// 플레이스홀더 매개변수 값으로 제목과 장르를 전달합니다.
-	rows, err := m.DB.QueryContext(ctx, query, title, pq.Array(genres))
+	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
