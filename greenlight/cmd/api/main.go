@@ -5,19 +5,17 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
 	_ "github.com/lib/pq"
 	"greenlight.wook.net/internal/data"
+	"greenlight.wook.net/internal/jsonlog"
 )
 
 const version = "1.0.0"
 
-// 연결 풀에 대한 구성 설정을 저장하기 위해 maxOpenConns,
-// maxIdleConns 및 maxIdleTime 필드를 추가합니다.
 type config struct {
 	port int
 	env  string
@@ -29,9 +27,10 @@ type config struct {
 	}
 }
 
+// logger  필드를 *log.Logger 대신 *jsonlog.Logger 유형으로 변경합니다.
 type application struct {
 	config config
-	logger *log.Logger
+	logger *jsonlog.Logger
 	models data.Models
 }
 
@@ -40,27 +39,26 @@ func main() {
 
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production")
-	// db-dsn 명령줄 플래그의 DSN 값을 config 구조체로 읽습니다.
-	// 플래그가 제공되지 않으면 기본적으로 development DSN을 사용합니다.
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("GREENLIGHT_DB_DSN"), "PostgreSQL DSN")
 
-	// 명령줄 플래그에서 연결 풀 설정을 config 구조체로 읽습니다.
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max connection idle time")
 
 	flag.Parse()
 
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	// INFO 심각도 수준 이상의 모든 메시지를 표준 출력 스트림에 기록하는 새 jsonlog.Logger를 초기화합니다.
+	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
-	// config 구조체를 전달하면서 openDB() 도우미 함수(아래 참조)를 호출하여 연결 풀을 생성합니다.
-	// 오류가 반환되면 오류를 기록하고 즉시 애플리케이션을 종료합니다.
 	db, err := openDB(cfg)
 	if err != nil {
-		logger.Fatal(err)
+		// PrintFatal() 메서드를 사용하여 치명적 수준에서 오류가 포함된 로그 항목을 작성하고 종료합니다.
+		// 로그 항목에 포함할 추가 프로퍼티가 없으므로 두 번째 매개변수로 nil을 전달합니다.
+		logger.PrintFatal(err, nil)
 	}
 
-	logger.Printf("데이터베이스 연결 풀 설정됨")
+	// 마찬가지로 PrintInfo() 메서드를 사용하여 INFO 레벨에 메시지를 작성합니다.
+	logger.PrintInfo("데이터베이스 연결 풀 설정됨", nil)
 
 	defer db.Close()
 
@@ -78,9 +76,15 @@ func main() {
 		WriteTimeout: 30 * time.Second,
 	}
 
-	logger.Printf("starting %s server on %s", cfg.env, srv.Addr)
+	// 다시 PrintInfo() 메서드를 사용하여 INFO 수준에서 "서버 시작" 메시지를 작성합니다.
+	// 하지만 이번에는 추가 속성(운영 환경 및 서버 주소)이 포함된 맵을 마지막 매개변수로 전달합니다.
+	logger.PrintInfo("서버 시작", map[string]string{
+		"addr": srv.Addr,
+		"env":  cfg.env,
+	})
 	err = srv.ListenAndServe()
-	logger.Fatal(err)
+	// PrintFatal() 메서드를 사용하여 오류를 기록하고 종료합니다.
+	logger.PrintFatal(err, nil)
 }
 
 func openDB(cfg config) (*sql.DB, error) {

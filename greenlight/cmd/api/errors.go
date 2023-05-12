@@ -5,11 +5,13 @@ import (
 	"net/http"
 )
 
-// logError() 메서드는 오류 메시지를 기록하는 generic 헬퍼입니다.
-// 이 책의 뒷부분에서 구조화된 로깅을 사용하도록 업그레이드하고
-// HTTP 메서드 및 URL을 포함한 요청에 대한 추가 정보를 기록할 것입니다.
 func (app *application) logError(r *http.Request, err error) {
-	app.logger.Print(err)
+	// PrintError() 메서드를 사용하여 오류 메시지를 기록하고 로그 항목에
+	// 현재 요청 메서드와 URL을 속성으로 포함시킵니다.
+	app.logger.PrintError(err, map[string]string{
+		"request_method": r.Method,
+		"request_url":    r.URL.String(),
+	})
 }
 
 // errorResponse() 메서드는 주어진 상태 코드와 함께 JSON 형식의 오류 메시지를 클라이언트에 전송하는
