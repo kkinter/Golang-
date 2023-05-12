@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
+	"greenlight.wook.net/internal/validator"
 )
 
 type envelope map[string]any
@@ -110,4 +112,49 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 	}
 
 	return nil
+}
+
+// readString() 헬퍼는 쿼리 문자열에서 문자열 값을 반환하거나
+// 일치하는 키를 찾을 수 없는 경우 제공된 기본값을 반환합니다.
+func (app *application) readString(qs url.Values, key string, defaultValue string) string {
+
+	s := qs.Get(key)
+
+	if s == "" {
+		return defaultValue
+	}
+
+	return s
+}
+
+// readCSV() 헬퍼는 쿼리 문자열에서 문자열 값을 읽은 다음 쉼표
+// 문자의 조각으로 분할합니다. 일치하는 키를 찾을 수 없으면 제공된 기본값을 반환합니다.
+func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
+	// 쿼리 문자열에서 값을 추출합니다.
+	csv := qs.Get(key)
+
+	if csv == "" {
+		return defaultValue
+	}
+
+	return strings.Split(csv, ",")
+}
+
+// readInt() 헬퍼는 쿼리 문자열에서 문자열 값을 읽고 정수로 변환한 후 반환합니다.
+// 일치하는 키를 찾을 수 없으면 제공된 기본값을 반환합니다.
+// 값을 정수로 변환할 수 없는 경우 제공된 유효성 검사기 인스턴스에 오류 메시지를 기록합니다.
+func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
+	s := qs.Get(key)
+
+	if s == "" {
+		return defaultValue
+	}
+
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		v.AddError(key, "must be and integer value")
+		return defaultValue
+	}
+
+	return i
 }
