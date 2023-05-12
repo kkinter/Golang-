@@ -6,7 +6,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// routes() 메서드를 업데이트하여 *httprouter.라우터 대신 http.핸들러를 반환합니다.
 func (app *application) routes() http.Handler {
 
 	router := httprouter.New()
@@ -21,6 +20,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
 	router.HandlerFunc(http.MethodPatch, "/v1/movies/:id", app.updateMovieHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/movies/:id", app.deleteMovieHandler)
-	// panic recovery 미들웨어로 라우터를 감쌉니다.
-	return app.recoverPanic(router)
+
+	// 라우터를 rateLimit() 미들웨어로 래핑합니다.
+	return app.recoverPanic(app.rateLimit(router))
 }

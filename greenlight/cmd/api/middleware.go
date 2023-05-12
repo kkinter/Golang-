@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"golang.org/x/time/rate"
 )
 
 func (app *application) recoverPanic(next http.Handler) http.Handler {
@@ -20,6 +22,26 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 				app.serverErrorResponse(w, r, fmt.Errorf("%s", err))
 			}
 		}()
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) rateLimit(next http.Handler) http.Handler {
+	// 초당 평균 2건의 요청을 허용하고 단일 '버스트'에 최대 4건의
+	// 요청을 허용하는 새로운 전송률 제한기를 초기화합니다.
+
+	limiter := rate.NewLimiter(2, 4)
+
+	// 우리가 반환하는 함수는 리미터 변수를 'closes over' 클로저입니다.
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// limiter.Allow()을 호출하여 요청이 허용되는지 확인하고,
+		// 허용되지 않는 경우 rateLimitExceededResponse() 헬퍼를 호출하여
+		// 429 너무 많은 요청 응답을 반환합니다(이 헬퍼는 잠시 후에 생성할 예정입니다).
+		if !limiter.Allow() {
+			app.rateLimitExccededResponse(w, r)
+			return
+		}
 
 		next.ServeHTTP(w, r)
 	})

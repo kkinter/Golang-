@@ -67,3 +67,8 @@ func (app *application) editConflictResponse(w http.ResponseWriter, r *http.Requ
 	message := "충돌로 인해 레코드를 업데이트할 수 없습니다. 다시 시도하세요."
 	app.errorResponse(w, r, http.StatusConflict, message)
 }
+
+func (app *application) rateLimitExccededResponse(w http.ResponseWriter, r *http.Request) {
+	message := "rate limit exceeded"
+	app.errorResponse(w, r, http.StatusTooManyRequests, message)
+}
