@@ -155,3 +155,31 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// 사용자가 익명이 아닌지 확인하기 위해 새로운 requireAuthenticatedUser() 미들웨어를 생성합니다.
+func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+		if user.IsAnonymous() {
+			app.authenticationRequiredResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// 사용자가 인증되었고 활성화되었는지를 확인합니다.
+func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
+	// 이 http.HandlerFunc를 반환하는 대신에 fn 변수에 할당합니다.
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+		// 사용자가 활성화되었는지 확인합니다.
+		if !user.Activated {
+			app.inactiveAccountResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+	// 반환하기 전에 requireAuthenticatedUser() 미들웨어로 fn을 감싸줍니다.
+	return app.requireAuthenticatedUser(fn)
+}

@@ -9,7 +9,7 @@ import (
 	"greenlight.wook.net/internal/validator"
 )
 
-func (app *application) creteMovieHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Title   string       `json:"title"`
 		Year    int32        `json:"year"`
