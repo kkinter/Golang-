@@ -1,12 +1,35 @@
 package data
 
-import "greenlight.wook.net/internal/validator"
+import (
+	"strings"
+
+	"greenlight.wook.net/internal/validator"
+)
 
 type Filters struct {
 	Page         int
 	PageSize     int
 	Sort         string
 	SortSafelist []string
+}
+
+// 클라이언트가 제공한 정렬 필드가 허용 목록의 항목 중 하나와 일치하는지 확인하고,
+// 일치하는 경우 정렬 필드에서 앞의 하이픈 문자(있는 경우)를 제거하여 열 이름을 추출합니다.
+func (f Filters) sortColumn() string {
+	for _, safeValue := range f.SortSafelist {
+		if f.Sort == safeValue {
+			return strings.TrimPrefix(f.Sort, "-")
+		}
+	}
+	panic("unsafe sort parameter: " + f.Sort)
+}
+
+func (f Filters) sortDirection() string {
+	if strings.HasPrefix(f.Sort, "-") {
+		return "DESC"
+	}
+
+	return "ASC"
 }
 
 func ValidateFilter(v *validator.Validator, f Filters) {
