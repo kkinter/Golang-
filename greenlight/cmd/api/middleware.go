@@ -211,19 +211,24 @@ func (app *application) requirePermission(code string, next http.HandlerFunc) ht
 
 func (app *application) enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		w.Header().Add("Vary", "Origin")
+		w.Header().Add("Vary", "Access-Control-Request-Method")
 		origin := r.Header.Get("Origin")
 
-		// Origin 요청 헤더가 있는 경우에만 실행합니다.
 		if origin != "" {
-			// 신뢰할 수 있는 Origin 목록을 반복하여 요청 Origin이 Origin중 하나와 정확히 일치하는지
-			// 확인합니다. 신뢰할 수 있는 Origin이 없으면 루프가 반복되지 않습니다.
 			for i := range app.config.cors.trustedOrigins {
 				if origin == app.config.cors.trustedOrigins[i] {
-					// 일치하는 항목이 있으면 요청 오리진을 값으로 사용하여 "Access-Control-Allow-Origin"응답 헤더를 설정하고
-					// 루프에서 벗어납니다.
 					w.Header().Set("Access-Control-Allow-Origin", origin)
+					// 요청에 HTTP 메서드 OPTIONS가 있고 "Access-Control-Request-Method" 헤더가
+					// 포함되어 있는지 확인합니다. 포함되어 있으면 사전 점검 요청으로 처리합니다.
+					if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+						//  앞서 설명한 대로 필요한 비행 전 응답 헤더를 설정합니다.
+						w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
+						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+						//  200 OK 상태와 함께 헤더를 작성하고 추가 작업 없이 미들웨어에서 반환합니다.
+						w.WriteHeader(http.StatusOK)
+						return
+					}
 					break
 				}
 			}
