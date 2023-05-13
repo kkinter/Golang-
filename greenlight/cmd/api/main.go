@@ -16,9 +16,12 @@ import (
 	"greenlight.wook.net/internal/data"
 	"greenlight.wook.net/internal/jsonlog"
 	"greenlight.wook.net/internal/mailer"
+	"greenlight.wook.net/internal/vcs"
 )
 
-const version = "1.0.0"
+var (
+	version = vcs.Version()
+)
 
 type config struct {
 	port int
