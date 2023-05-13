@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -60,7 +61,6 @@ func main() {
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production")
 
-	// db-dsn 명령줄 플래그의 기본값으로 이전과 같이 os.Getenv("GREENLIGHT_DB_DSN")가 아닌 빈 문자열 ""을 사용하세요.
 	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "PostgreSQL DSN")
 
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
@@ -77,16 +77,21 @@ func main() {
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "ba2b076e007424", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.wook.net>", "SMTP sender")
 
-	// flag.Func() 함수를 사용하여 -cors-trusted-origins 명령줄 플래그를 처리합니다.
-	// 여기서는 strings.Fields() 함수를 사용하여 공백 문자를 기준으로 플래그 값을 조각으로 분할하고
-	// config 구조체에 할당합니다. 중요한 것은 -cors-trusted-origins 플래그가 없거나 빈 문자열을
-	// 포함하거나 공백만 포함된 경우 strings.Fields()는 빈 []string 슬라이스를 반환한다는 것입니다.
 	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(val string) error {
 		cfg.cors.trustedOrigins = strings.Fields(val)
 		return nil
 	})
 
+	// Create a new version boolean flag with the default value of false.
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+
 	flag.Parse()
+
+	// If the version flag value is true, then print out the version number and immediately exit.
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		os.Exit(0)
+	}
 
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
