@@ -183,3 +183,28 @@ func (app *application) requireActivatedUser(next http.HandlerFunc) http.Handler
 	// 반환하기 전에 requireAuthenticatedUser() 미들웨어로 fn을 감싸줍니다.
 	return app.requireAuthenticatedUser(fn)
 }
+
+// 미들웨어 함수의 첫 번째 매개 변수는 사용자가 가져야 하는 권한 코드입니다.
+func (app *application) requirePermission(code string, next http.HandlerFunc) http.HandlerFunc {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		//요청 컨텍스트에서 사용자를 검색합니다.
+		user := app.contextGetUser(r)
+
+		// 사용자에 대한 permissions 슬라이스를 가져옵니다.
+		permissions, err := app.models.Permissions.GetAllForUser(user.ID)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+
+		// 슬라이스에 필요한 권한이 포함되어 있는지 확인합니다. 포함되지 않은 경우 403 금지됨 응답을 반환합니다.
+		if !permissions.Include(code) {
+			app.notPermittedResponse(w, r)
+			return
+		}
+		// 그렇지 않으면 필요한 권한이 있으므로 체인의 다음 핸들러를 호출합니다.
+		next.ServeHTTP(w, r)
+	}
+	// 이를 반환하기 전에 requireActivatedUser() 미들웨어로 래핑합니다.
+	return app.requireActivatedUser(fn)
+}
