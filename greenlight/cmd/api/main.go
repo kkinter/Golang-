@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"database/sql"
+	"expvar"
 	"flag"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -93,7 +95,21 @@ func main() {
 	defer db.Close()
 	logger.PrintInfo("데이터베이스 연결 풀 설정됨", nil)
 
-	// 명령줄 플래그의 설정을 사용하여 새 메일러 인스턴스를 초기화하고 애플리케이션 구조에 추가합니다.
+	expvar.NewString("version").Set(version)
+
+	// 활성 고루틴의 수를 게시합니다.
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
+	// 데이터베이스 연결 풀 통계를 게시합니다.
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+	// current Unix timestamp.
+	expvar.Publish("timestamp", expvar.Func(func() any {
+		return time.Now().Unix()
+	}))
+
 	app := &application{
 		config: cfg,
 		logger: logger,

@@ -2,13 +2,16 @@ package main
 
 import (
 	"errors"
+	"expvar"
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/felixge/httpsnoop"
 	"golang.org/x/time/rate"
 	"greenlight.wook.net/internal/data"
 	"greenlight.wook.net/internal/validator"
@@ -234,5 +237,33 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 			}
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) metrics(next http.Handler) http.Handler {
+	totalRequestsReceived := expvar.NewInt("total_requests_received")
+	totalResponsesSent := expvar.NewInt("total_responses_sent")
+	totalProcessingTimeMicroseconds := expvar.NewInt("total_processing_time_μs")
+
+	// 각 HTTP 상태 코드에 대한 응답 수를 저장할 새 expvar 맵을 선언합니다.
+	totalResponsesSentByStatus := expvar.NewMap("total_responses_sent_by_status")
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 이전과 같이 수신된 요청 횟수를 늘립니다.
+		totalRequestsReceived.Add(1)
+
+		//기존 http.ResponseWriter 및 http.Request와 함께 체인의 다음 핸들러를
+		//전달하여 httpsnoop.CaptureMetrics() 함수를 호출합니다. 그러면 위에서
+		// 본 메트릭 구조체가 반환됩니다.
+		metrics := httpsnoop.CaptureMetrics(next, w, r)
+
+		totalResponsesSent.Add(1)
+		// httpsnoop에서 요청 처리 시간(마이크로초)을 가져와 누적 처리 시간을 증가시킵니다.
+		totalProcessingTimeMicroseconds.Add(metrics.Duration.Microseconds())
+
+		//Add() 메서드를 사용하여 주어진 상태 코드의 카운트를 1씩 증가시킵니다.
+		// expvar 맵은 문자열 키로 되어 있으므로, 상태 코드(정수인)를 문자열로 변환하려면
+		// strconv.Itoa() 함수를 사용해야 한다는 점에 유의하세요.
+		totalResponsesSentByStatus.Add(strconv.Itoa(metrics.Code), 1)
 	})
 }
