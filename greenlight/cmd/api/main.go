@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"flag"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 
 const version = "1.0.0"
 
-// SMTP 서버 설정을 보유하도록 config 구조를 업데이트합니다.
 type config struct {
 	port int
 	env  string
@@ -38,11 +38,12 @@ type config struct {
 		password string
 		sender   string
 	}
+	// cors 구조체 및 trustedOrigins 필드를 추가합니다.
+	cors struct {
+		trustedOrigins []string
+	}
 }
 
-// 애플리케이션 구조체에 sync.WaitGroup을 포함합니다. sync.WaitGroup 유형의 0 값은 '카운터' 값이 0인 유효하고
-//
-//	사용 가능한 sync.WaitGroup이므로 사용하기 전에 초기화하기 위해 다른 작업을 할 필요가 없습니다.
 type application struct {
 	config config
 	logger *jsonlog.Logger
@@ -66,12 +67,20 @@ func main() {
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "limiter 최대 버스트")
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "limiter 활성화")
 
-	// 메일트랩 설정을 기본값으로 사용하여 SMTP 서버 구성 설정을 구성 구조체에 읽어들입니다.
 	flag.StringVar(&cfg.smtp.host, "smtp-host", "sandbox.smtp.mailtrap.io", "SMTP host")
 	flag.IntVar(&cfg.smtp.port, "smtp-port", 25, "SMTP port")
 	flag.StringVar(&cfg.smtp.username, "smtp-username", "b66e54365d5d63", "SMTP username")
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "ba2b076e007424", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.wook.net>", "SMTP sender")
+
+	// flag.Func() 함수를 사용하여 -cors-trusted-origins 명령줄 플래그를 처리합니다.
+	// 여기서는 strings.Fields() 함수를 사용하여 공백 문자를 기준으로 플래그 값을 조각으로 분할하고
+	// config 구조체에 할당합니다. 중요한 것은 -cors-trusted-origins 플래그가 없거나 빈 문자열을
+	// 포함하거나 공백만 포함된 경우 strings.Fields()는 빈 []string 슬라이스를 반환한다는 것입니다.
+	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(val string) error {
+		cfg.cors.trustedOrigins = strings.Fields(val)
+		return nil
+	})
 
 	flag.Parse()
 

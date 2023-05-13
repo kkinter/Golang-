@@ -15,7 +15,6 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
-	// 각 /v1/movies** 엔드포인트에서 requirePermission() 미들웨어를 사용하여 필요한 권한 코드를 첫 번째 매개변수로 전달합니다.
 	router.HandlerFunc(http.MethodGet, "/v1/movies", app.requirePermission("movies:read", app.listMoviesHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/movies", app.requirePermission("movies:write", app.createMovieHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.requirePermission("movies:read", app.showMovieHandler))
@@ -27,5 +26,6 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
-	return app.recoverPanic(app.rateLimit(app.authenticate(router)))
+	// enableCORS() middleware 를 추가.
+	return app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router))))
 }

@@ -208,3 +208,26 @@ func (app *application) requirePermission(code string, next http.HandlerFunc) ht
 	// 이를 반환하기 전에 requireActivatedUser() 미들웨어로 래핑합니다.
 	return app.requireActivatedUser(fn)
 }
+
+func (app *application) enableCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		w.Header().Add("Vary", "Origin")
+		origin := r.Header.Get("Origin")
+
+		// Origin 요청 헤더가 있는 경우에만 실행합니다.
+		if origin != "" {
+			// 신뢰할 수 있는 Origin 목록을 반복하여 요청 Origin이 Origin중 하나와 정확히 일치하는지
+			// 확인합니다. 신뢰할 수 있는 Origin이 없으면 루프가 반복되지 않습니다.
+			for i := range app.config.cors.trustedOrigins {
+				if origin == app.config.cors.trustedOrigins[i] {
+					// 일치하는 항목이 있으면 요청 오리진을 값으로 사용하여 "Access-Control-Allow-Origin"응답 헤더를 설정하고
+					// 루프에서 벗어납니다.
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					break
+				}
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
