@@ -1,0 +1,61 @@
+{{template "base" .}}
+
+{{define "title"}}
+    Virtual Terminal
+{{end}}
+
+{{define "content"}}
+<!-- 결제위젯, 이용약관 영역-->
+<div id="payment-method"></div>
+<div id="agreement"></div>
+<!-- 결제하기 버튼 -->
+<button id="payment-button">결제하기</button>
+
+{{end}}
+
+{{define "js"}}
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <!-- jQuery -->
+    <script src="https://js.tosspayments.com/v1/payment-widget"></script>
+
+    <script>
+    {{/* const clientKey = 'test_ck_MGjLJoQ1aVZNBObP7RlVw6KYe2RN'
+    const secretKey = 'test_sk_0Poxy1XQL8R7yOLe11537nO5Wmlg' */}}
+
+    const clientKey = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq'
+    const secretKey = 'test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R'
+    const button = document.getElementById("payment-button")
+
+    const customerKey = "" //
+
+   // const paymentWidget = PaymentWidget(clientKey, customerKey) // 회원 결제
+    const paymentWidget = PaymentWidget(clientKey, PaymentWidget.ANONYMOUS) // 비회원 결제
+
+    paymentWidget.renderPaymentMethods("#payment-method", 15000)
+
+    // ------  이용약관 렌더링 ------
+    // 이용약관이 렌더링될 DOM 요소를 지정하는 CSS 선택자를 넣어주세요.
+    // https://docs.tosspayments.com/reference/widget-sdk#renderagreement선택자
+    paymentWidget.renderAgreement('#agreement')
+
+    // ------ '결제하기' 버튼 누르면 결제창 띄우기 ------
+    // 더 많은 결제 정보 파라미터는 결제위젯 SDK에서 확인하세요.
+    // https://docs.tosspayments.com/reference/widget-sdk#requestpayment결제-정보
+    button.addEventListener("click", function () {
+      paymentWidget.requestPayment({
+        orderId: "cuC7SrETww9qCJpQm17sD",            // 주문 ID(직접 만들어주세요)
+        orderName: "토스 티셔츠 외 2건",                 // 주문명
+        successUrl: "https://my-store.com/success",  // 결제에 성공하면 이동하는 페이지(직접 만들어주세요)
+        failUrl: "https://my-store.com/fail",        // 결제에 실패하면 이동하는 페이지(직접 만들어주세요)
+        customerEmail: "customer123@gmail.com",
+        customerName: "김토스"
+      })
+    })
+    
+
+
+    </script>
+    
+{{end}}
