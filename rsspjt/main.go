@@ -2,10 +2,12 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"rsspjt/internal/database"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -34,6 +36,13 @@ type apiConfig struct {
 }
 
 func main() {
+	feed, err := urlToFeed("https://wagslane.dev/index.xml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(feed)
+
 	godotenv.Load()
 
 	portString := os.Getenv("PORT")
@@ -51,9 +60,12 @@ func main() {
 		log.Fatal("Can't connect to database", err)
 	}
 
+	db := database.New(conn)
 	apiCfg := apiConfig{
-		DB: database.New(conn),
+		DB: db,
 	}
+
+	go startScraping(db, 10, time.Minute)
 
 	router := chi.NewRouter()
 
@@ -89,6 +101,7 @@ func main() {
 	}
 
 	log.Printf("Server starting on port %v", portString)
+
 	err = srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
