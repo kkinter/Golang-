@@ -33,7 +33,7 @@ func (app *application) authenticate(w http.ResponseWriter, r *http.Request) {
 	// read json payload
 	var requestPayload struct {
 		Email    string `json:"email"`
-		Passowrd string `json:"password"`
+		Password string `json:"password"`
 	}
 
 	err := app.readJSON(w, r, &requestPayload)
@@ -43,13 +43,14 @@ func (app *application) authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate user against database
-	user, err := app.DB.GetUserNyEmail(requestPayload.Email)
+	user, err := app.DB.GetUserByEmail(requestPayload.Email)
 	if err != nil {
-		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
+		app.errorJSON(w, errors.New("invalid !!credentials"), http.StatusBadRequest)
 		return
 	}
+
 	// check password
-	valid, err := user.PasswordMatches(requestPayload.Passowrd)
+	valid, err := user.PasswordMatches(requestPayload.Password)
 	if err != nil || !valid {
 		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
 		return
@@ -65,7 +66,7 @@ func (app *application) authenticate(w http.ResponseWriter, r *http.Request) {
 	// generate tokens
 	tokens, err := app.auth.GenerateTokenPair(&u)
 	if err != nil {
-		app.errorJSON(w, err)
+		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -73,5 +74,4 @@ func (app *application) authenticate(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, refreshCookie)
 
 	app.writeJSON(w, http.StatusAccepted, tokens)
-
 }

@@ -58,13 +58,12 @@ func (j *Auth) GenerateTokenPair(user *jwtUser) (TokenPairs, error) {
 
 	// Create a refresh token and set claims
 	refreshToken := jwt.New(jwt.SigningMethodHS256)
-
 	refreshTokenClaims := refreshToken.Claims.(jwt.MapClaims)
 	refreshTokenClaims["sub"] = fmt.Sprint(user.ID)
 	refreshTokenClaims["iat"] = time.Now().UTC().Unix()
 
 	// Set the expiry for the refresh token
-	refreshTokenClaims["exp"] = time.Now().Add(j.RefreshExpiry).Unix()
+	refreshTokenClaims["exp"] = time.Now().UTC().Add(j.RefreshExpiry).Unix()
 
 	// Create signed refresh roken
 	signedRefreshToken, err := refreshToken.SignedString([]byte(j.Secret))
@@ -77,7 +76,6 @@ func (j *Auth) GenerateTokenPair(user *jwtUser) (TokenPairs, error) {
 		Token:        signedAccessToken,
 		RefreshToken: signedRefreshToken,
 	}
-
 	// Return TokenPairs
 	return tokenPairs, nil
 }
@@ -96,7 +94,7 @@ func (j *Auth) GetRefreshCookie(refreshToken string) *http.Cookie {
 	}
 }
 
-func (j *Auth) GetExpireRefreshCookie() *http.Cookie {
+func (j *Auth) GetExpiredRefreshCookie() *http.Cookie {
 	return &http.Cookie{
 		Name:     j.CookieName,
 		Path:     j.CookiePath,

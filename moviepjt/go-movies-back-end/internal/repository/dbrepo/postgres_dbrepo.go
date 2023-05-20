@@ -62,7 +62,7 @@ func (m *PostgresDBRepo) AllMovies() ([]*models.Movie, error) {
 	return movies, nil
 }
 
-func (m *PostgresDBRepo) GetUserNyEmail(email string) (*models.User, error) {
+func (m *PostgresDBRepo) GetUserByEmail(email string) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
@@ -82,6 +82,7 @@ func (m *PostgresDBRepo) GetUserNyEmail(email string) (*models.User, error) {
 		&user.Email,
 		&user.FirstName,
 		&user.LastName,
+		&user.Password,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
