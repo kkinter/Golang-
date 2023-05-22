@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const Movies = () => {
-    const [movies, setMovies] = useState([])
+    const [movies, setMovies] = useState([]);
 
     useEffect( () => {
         const headers = new Headers();
-        headers.append("Content-Type", "application/json")
+        headers.append("Content-Type", "application/json");
 
         const requestOptions = {
             method: "GET",
@@ -24,9 +24,9 @@ const Movies = () => {
 
     }, []);
 
-    return (
-        <div className="text-center">
-            <h2>Movies </h2>
+    return(
+        <div>
+            <h2>Movies</h2>
             <hr />
             <table className="table table-striped table-hover">
                 <thead>
@@ -46,7 +46,7 @@ const Movies = () => {
                             </td>
                             <td>{m.release_date}</td>
                             <td>{m.mpaa_rating}</td>
-                        </tr>
+                        </tr>    
                     ))}
                 </tbody>
             </table>

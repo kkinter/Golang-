@@ -1,5 +1,5 @@
 const Alert = (props) => {
-    return (
+    return(
         <div className={"alert " + props.className} role="alert">
             {props.message}
         </div>

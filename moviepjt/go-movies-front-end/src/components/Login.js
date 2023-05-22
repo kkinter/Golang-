@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Input from "./form/input";
+import Input from "./form/Input";
 import { useNavigate, useOutletContext } from "react-router-dom";
 
 const Login = () => {
@@ -12,19 +12,42 @@ const Login = () => {
 
     const navigate = useNavigate();
     
-    const hadleSubmit = (event) => {
+    const handleSubmit = (event) => {
         event.preventDefault();
-        console.log("email/pass", email, password)
-
-        if (email === "admin@example.com") {
-            setJwtToken("abc");
-            setAlertClassName("d-none");
-            setAlertMessage("");
-            navigate("/")
-        } else {
-            setAlertClassName("alert-danger");
-            setAlertMessage("Invalid credentials");
+        
+        // build the request payload
+        let payload = {
+            email: email,
+            password: password,
         }
+
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(payload),
+        }
+
+        fetch(`/authenticate`, requestOptions)
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.error) {
+                    console.log(data.error)
+                    setAlertClassName("alert-danger");
+                    setAlertMessage(data.message);
+                } else {
+                    setJwtToken(data.access_token);
+                    setAlertClassName("d-none");
+                    setAlertMessage("");
+                    navigate("/");
+                }
+            })
+            .catch(error => {
+                setAlertClassName("alert-danger");
+                setAlertMessage("invalid credentials");
+            })
     }
 
 
@@ -33,7 +56,7 @@ const Login = () => {
             <h2>Login </h2>
             <hr />
 
-            <form onSubmit={hadleSubmit}>
+            <form onSubmit={handleSubmit}>
                 <Input 
                     title="Email Address"
                     type="email"

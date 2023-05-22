@@ -23,5 +23,8 @@
 
 # Go workspace file
 go.work
-
+.envrc
+*/bin/
+.env
 # End of https://www.toptal.com/developers/gitignore/api/go
+.swagger
