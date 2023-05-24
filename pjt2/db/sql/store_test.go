@@ -9,7 +9,7 @@ import (
 )
 
 func TestTranseferTx(t *testing.T) {
-	store := NewStroe(testDB)
+	store := NewStore(testDB)
 
 	account1 := createRandomAccount(t)
 	account2 := createRandomAccount(t)
@@ -109,7 +109,7 @@ func TestTranseferTx(t *testing.T) {
 }
 
 func TestTranseferTxDeadlock(t *testing.T) {
-	store := NewStroe(testDB)
+	store := NewStore(testDB)
 
 	account1 := createRandomAccount(t)
 	account2 := createRandomAccount(t)

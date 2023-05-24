@@ -1,4 +1,4 @@
-SET timezone = 'Asia/Seoul';
+SET TIME ZONE 'Asia/Seoul';
 
 CREATE TABLE "accounts" (
   "id" bigserial PRIMARY KEY,
