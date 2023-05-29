@@ -9,13 +9,13 @@ const Login = () => {
     const { setJwtToken } = useOutletContext();
     const { setAlertClassName } = useOutletContext();
     const { setAlertMessage } = useOutletContext();
+    const { toggleRefresh } = useOutletContext();
 
     const navigate = useNavigate();
     
     const handleSubmit = (event) => {
         event.preventDefault();
         
-        // build the request payload
         let payload = {
             email: email,
             password: password,
@@ -34,13 +34,13 @@ const Login = () => {
             .then((response) => response.json())
             .then((data) => {
                 if (data.error) {
-                    console.log(data.error)
                     setAlertClassName("alert-danger");
                     setAlertMessage(data.message);
                 } else {
                     setJwtToken(data.access_token);
                     setAlertClassName("d-none");
                     setAlertMessage("");
+                    toggleRefresh(true);
                     navigate("/");
                 }
             })
