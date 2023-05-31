@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	db "simple_bank/db/sql"
@@ -10,6 +11,10 @@ import (
 type createAccountRequest struct {
 	Owner    string `json:"owner"`
 	Currency string `json:"currency"`
+}
+
+func (app *application) test(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "hi%s", "wook")
 }
 
 func (app *application) createAccount(w http.ResponseWriter, r *http.Request) {
