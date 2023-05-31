@@ -23,7 +23,7 @@ func main() {
 
 	if *server == "http" {
 		fmt.Println("http server is starting on :8080")
-		http.ListenAndServe(":8000", routes())
+		http.ListenAndServe(":8080", routes())
 	} else if *server == "websocket" {
 		fmt.Println("websocket server is starting on :8081")
 		StartWebsocketServer()

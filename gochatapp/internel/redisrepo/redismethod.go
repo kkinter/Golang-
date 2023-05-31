@@ -13,7 +13,6 @@ import (
 )
 
 func RegisterNewUser(username, password string) error {
-
 	err := redisClient.Set(context.Background(), username, password, 0).Err()
 	if err != nil {
 		log.Println("error while adding new user", err)
@@ -23,8 +22,8 @@ func RegisterNewUser(username, password string) error {
 	err = redisClient.SAdd(context.Background(), userSetKey(), username).Err()
 	if err != nil {
 		log.Println("error while adding user in set", err)
-
 		redisClient.Del(context.Background(), username)
+
 		return err
 	}
 
