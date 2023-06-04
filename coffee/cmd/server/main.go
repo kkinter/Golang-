@@ -1,7 +1,6 @@
 package main
 
 import (
-	"coffee-api/db"
 	"fmt"
 	"log"
 	"net/http"
@@ -30,12 +29,7 @@ func main() {
 	var cfg Config
 	cfg.Port = port
 
-	dbConn, err := db.ConnectPostgres(os.Getenv("DSN"))
-	if err != nil {
-		log.Fatal("Can't connect to database")
-	}
-
-	defer dbConn.DB.Close()
+	db.openDB()
 
 	app := &Application{
 		Config: cfg,
