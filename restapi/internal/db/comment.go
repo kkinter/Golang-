@@ -16,7 +16,7 @@ type CommentRow struct {
 	Author sql.NullString
 }
 
-func converCommentRowToComment(c CommentRow) comment.Comment {
+func convertCommentRowToComment(c CommentRow) comment.Comment {
 	return comment.Comment{
 		ID:     c.ID,
 		Slug:   c.Slug.String,
@@ -41,7 +41,7 @@ func (d *Database) GetComment(ctx context.Context, uuid string) (comment.Comment
 		return comment.Comment{}, fmt.Errorf("error fetching the comment by uuid: %w", err)
 	}
 
-	return converCommentRowToComment(cmtRow), nil
+	return convertCommentRowToComment(cmtRow), nil
 }
 
 func (d *Database) PostComment(ctx context.Context, cmt comment.Comment) (comment.Comment, error) {
@@ -63,4 +63,40 @@ func (d *Database) PostComment(ctx context.Context, cmt comment.Comment) (commen
 	}
 
 	return cmt, nil
+}
+
+func (d *Database) DeleteComment(ctx context.Context, id string) error {
+	_, err := d.Client.ExecContext(
+		ctx,
+		`DELETE FROM comments where id = $1`,
+		id,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to delete comment from db: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Database) UpdateComment(ctx context.Context, id string, cmt comment.Comment) (comment.Comment, error) {
+	query := `
+		UPDATE comments SET
+		slug = $1,
+		author = $2,
+		body = $3 
+		WHERE id = $4
+	`
+
+	_, err := d.Client.ExecContext(ctx, query, cmt.Slug, cmt.Author, cmt.Body, id)
+	if err != nil {
+		return comment.Comment{}, fmt.Errorf("failed to update comment: %w", err)
+	}
+
+	return convertCommentRowToComment(CommentRow{
+		ID:     id,
+		Slug:   sql.NullString{String: cmt.Slug, Valid: true},
+		Body:   sql.NullString{String: cmt.Body, Valid: true},
+		Author: sql.NullString{String: cmt.Author, Valid: true},
+	}), nil
 }

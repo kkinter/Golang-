@@ -1,11 +1,11 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/go-api-prac/internal/comment"
 	"github.com/go-api-prac/internal/db"
+	transportHttp "github.com/go-api-prac/internal/transport/http"
 )
 
 // Run - go 애플리케이션의 인스턴스화 및 시작을 담당합니다.
@@ -28,10 +28,11 @@ func Run() error {
 	fmt.Println("successfully connected and pinged db")
 
 	cmtService := comment.NewService(db)
-	fmt.Println(cmtService.GetComment(
-		context.Background(),
-		"206c6d84-0389-11ee-be56-0242ac120002",
-	))
+
+	httpHandler := transportHttp.NewHandler(cmtService)
+	if err := httpHandler.Serve(); err != nil {
+		return err
+	}
 
 	return nil
 }
