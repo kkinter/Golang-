@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -33,7 +32,7 @@ func (app *application) createAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("fine")
 
-	account, err := app.store.Queries.CreateAccount(context.Background(), arg)
+	account, err := app.store.Queries.CreateAccount(r.Context(), arg)
 
 	if err != nil {
 		app.errorJSON(w, err, http.StatusInternalServerError)
