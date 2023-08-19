@@ -13,6 +13,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+var release string
+
 func main() {
 	os.Exit(start())
 }
@@ -25,6 +27,8 @@ func start() int {
 		return 1
 	}
 
+	log = log.With(zap.String("release", release))
+
 	defer func() {
 		_ = log.Sync()
 	}()
@@ -34,6 +38,7 @@ func start() int {
 
 	s := server.New(server.Options{
 		Host: host,
+		Log:  log,
 		Port: port,
 	})
 

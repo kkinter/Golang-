@@ -10,24 +10,33 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 type Server struct {
 	address string
+	log     *zap.Logger
 	mux     chi.Router
 	server  *http.Server
 }
 
 type Options struct {
 	Host string
+	Log  *zap.Logger
 	Port int
 }
 
 func New(opts Options) *Server {
+	if opts.Log == nil {
+		opts.Log = zap.NewNop()
+	}
+
 	address := net.JoinHostPort(opts.Host, strconv.Itoa(opts.Port))
 	mux := chi.NewMux()
+
 	return &Server{
 		address: address,
+		log:     opts.Log,
 		mux:     mux,
 		server: &http.Server{
 			Addr:              address,
@@ -43,7 +52,8 @@ func New(opts Options) *Server {
 func (s *Server) Start() error {
 	s.setupRoutes()
 
-	fmt.Println("시작 중", s.address)
+	// fmt.Println("시작 중", s.address)
+	s.log.Info("시작 중", zap.String("address", s.address))
 	if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("서버 시작 중에 %w 에러가 발생하였습니다.", err)
 	}
@@ -51,7 +61,8 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Stop() error {
-	fmt.Println("중지 중")
+	// fmt.Println("중지 중")
+	s.log.Info("중지 중")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
