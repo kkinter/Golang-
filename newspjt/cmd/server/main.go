@@ -23,7 +23,7 @@ func start() int {
 	logEnv := getStringOrDefault("LOG_ENV", "development")
 	log, err := createLogger(logEnv)
 	if err != nil {
-		fmt.Println("로거 설정에 오류가 발생했습니다:", err)
+		fmt.Println("로거 설정에 오류가 발생했습니다 :", err)
 		return 1
 	}
 
