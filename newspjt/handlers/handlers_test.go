@@ -11,6 +11,7 @@ import (
 	"github.com/matryer/is"
 )
 
+// health test
 func TestHealth(t *testing.T) {
 	t.Run("returns 200", func(t *testing.T) {
 		is := is.New(t)
