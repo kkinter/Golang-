@@ -32,7 +32,7 @@ func main() {
 	r.Get("/contact", contactHandler)
 	r.Get("/faq", faqHandler)
 	// dynamic path
-	r.Get("faq/:id", faqDyHandler)
+	r.Get("/faq/{id}", faqDyHandler)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "page not found", http.StatusNotFound)
