@@ -20,12 +20,19 @@ func faqHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "<h1>FAQ</h1>")
 }
 
+func faqDyHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "<h1>FAQ</h1>")
+	fmt.Fprint(w, r.URL.Path)
+}
+
 func main() {
 
 	r := chi.NewRouter()
 	r.Get("/", homeHandler)
 	r.Get("/contact", contactHandler)
 	r.Get("/faq", faqHandler)
+	// dynamic path
+	r.Get("faq/:id", faqDyHandler)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "page not found", http.StatusNotFound)
