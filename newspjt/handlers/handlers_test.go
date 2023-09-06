@@ -23,6 +23,7 @@ func TestHealth(t *testing.T) {
 	})
 }
 
+// get
 func makeGetRequest(handler http.Handler, target string) (int, http.Header, string) {
 	req := httptest.NewRequest(http.MethodGet, target, nil)
 	res := httptest.NewRecorder()
