@@ -55,7 +55,7 @@ func start() int {
 	})
 
 	<-ctx.Done()
-
+	// shutdown
 	eg.Go(func() error {
 		if err := s.Stop(); err != nil {
 			log.Info("Error stopping server", zap.Error(err))
