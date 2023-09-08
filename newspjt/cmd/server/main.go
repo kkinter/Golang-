@@ -19,6 +19,7 @@ func main() {
 	os.Exit(start())
 }
 
+// start
 func start() int {
 	logEnv := getStringOrDefault("LOG_ENV", "development")
 	log, err := createLogger(logEnv)
