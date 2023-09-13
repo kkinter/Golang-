@@ -1,4 +1,10 @@
+from django.db.models import Prefetch
 from drf_spectacular.utils import extend_schema
+
+# from django.db import connection
+# from pygments import highlight
+# from pygments.formatters import TerminalFormatter
+# from pygments.lexers import SqlLexer
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -49,7 +55,9 @@ class ProductViewSet(viewsets.ViewSet):
         단일 상품 조회를 위한 Endpoint
         """
         serializer = ProductSerializer(
-            Product.objects.filter(slug=slug).select_related("category", "brand"),
+            Product.objects.filter(slug=slug)
+            .select_related("category", "brand")
+            .prefetch_related(Prefetch("product_line__product_image")),
             many=True,
         )
         data = Response(serializer.data)
