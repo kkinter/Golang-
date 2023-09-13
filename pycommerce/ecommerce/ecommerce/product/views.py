@@ -49,7 +49,7 @@ class ProductViewSet(viewsets.ViewSet):
         단일 상품 조회를 위한 Endpoint
         """
         serializer = ProductSerializer(
-            self.queryset.filter(slug=slug).select_related("category", "brand"),
+            Product.objects.filter(slug=slug).select_related("category", "brand"),
             many=True,
         )
         data = Response(serializer.data)

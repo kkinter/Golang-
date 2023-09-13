@@ -47,7 +47,6 @@ class Product(models.Model):
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
     category = TreeForeignKey("Category", on_delete=models.SET_NULL, null=True, blank=True)
     is_active = models.BooleanField(default=False)
-
     objects = ActiveQueryset.as_manager()
     # isactive = ActiveManager()
 
@@ -76,7 +75,7 @@ class ProductLine(models.Model):
         qs = ProductLine.objects.filter(product=self.product)
         for obj in qs:
             if self.id != obj.id and self.order == obj.order:
-                raise ValidationError("ORDER 값이 중복 됩니다.")
+                raise ValidationError("order 값이 중복 됩니다.")
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -84,3 +83,23 @@ class ProductLine(models.Model):
 
     def __str__(self):
         return str(self.sku)
+
+
+class ProductImage(models.Model):
+    alternative_text = models.CharField(max_length=100)
+    url = models.ImageField(upload_to=None, default="test.jpg")
+    productline = models.ForeignKey(ProductLine, on_delete=models.CASCADE, related_name="product_image")
+    order = OrderField(unique_for_field="productline", blank=True)
+
+    def clean(self):
+        qs = ProductImage.objects.filter(productline=self.productline)
+        for obj in qs:
+            if self.id != obj.id and self.order == obj.order:
+                raise ValidationError("order 값이 중복 됩니다.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super(ProductImage, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return str(self.url)
