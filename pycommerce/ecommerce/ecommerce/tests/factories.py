@@ -30,3 +30,4 @@ class ProductFactory(factory.django.DjangoModelFactory):
     # 외래키 참조
     brand = factory.SubFactory(BrandFactory)
     category = factory.SubFactory(CategoryFactory)
+    is_active = True
