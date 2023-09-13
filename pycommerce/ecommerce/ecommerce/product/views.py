@@ -38,15 +38,23 @@ class ProductViewSet(viewsets.ViewSet):
     모든 상품 조회를 위한 Viewset
     """
 
-    queryset = Product.objects.all()
+    # queryset = Product.objects.all()
+    # queryset = Product.isactive.all()
+    queryset = Product.objects.isactive()
+
     lookup_field = "slug"
 
     def retrieve(self, request, slug=None):
         """
         단일 상품 조회를 위한 Endpoint
         """
-        serializer = ProductSerializer(self.queryset.filter(slug=slug), many=True)
-        return Response(serializer.data)
+        serializer = ProductSerializer(
+            self.queryset.filter(slug=slug).select_related("category", "brand"),
+            many=True,
+        )
+        data = Response(serializer.data)
+
+        return data
 
     @extend_schema(responses=ProductSerializer)
     def list(self, request):
