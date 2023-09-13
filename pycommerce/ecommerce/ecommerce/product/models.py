@@ -1,5 +1,8 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from mptt.models import MPTTModel, TreeForeignKey
+
+from .fields import OrderField
 
 
 class ActiveQueryset(models.QuerySet):
@@ -57,5 +60,23 @@ class ProductLine(models.Model):
     stock_qty = models.IntegerField()
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_line")
     is_active = models.BooleanField(default=False)
+    order = OrderField(blank=True, unique_for_field="product")
+    """
+    order = OrderField(blank=True)
+    makemigrations >
+        SystemCheckError: System check identified some issues:
 
+        ERRORS:
+        ?: OrderField는 'unique_for_field' 속성을 정의해야 합니다.
+    """
     objects = ActiveQueryset.as_manager()
+
+    def clean_fields(self, exclude=None):
+        super().clean_fields(exclude=exclude)
+        qs = ProductLine.objects.filter(product=self.product)
+        for obj in qs:
+            if self.id != obj.id and self.order == obj.order:
+                raise ValidationError("ORDER 값이 중복 됩니다.")
+
+    def __str__(self):
+        return str(self.order)
