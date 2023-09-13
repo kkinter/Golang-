@@ -64,12 +64,12 @@ class ProductViewSet(viewsets.ViewSet):
     @action(
         methods=["get"],
         detail=False,
-        url_path=r"category/(?P<category>\w+)/all",
+        url_path=r"category/(?P<slug>[\w-]+)",
     )
-    def list_product_by_category(self, request, category=None):
+    def list_product_by_category_slug(self, request, slug=None):
         """
         카테고리 별 상품 조회를 위한 Endpoint
         """
-        serializer = ProductSerializer(self.queryset.filter(category__name=category), many=True)
+        serializer = ProductSerializer(self.queryset.filter(category__slug=slug), many=True)
 
         return Response(serializer.data)

@@ -25,12 +25,10 @@ class OrderField(models.PositiveIntegerField):
         return []
 
     def pre_save(self, model_instance, add):
-        print("HELLO")
-        print(model_instance)
+        # print(model_instance)
 
         if getattr(model_instance, self.attname) is None:
             # print(getattr(model_instance, self.attname))
-            # print("NEED A VAL")
             qs = self.model.objects.all()
             try:
                 query = {
