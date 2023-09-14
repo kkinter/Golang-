@@ -54,28 +54,59 @@ class Product(models.Model):
         return self.name
 
 
+class Attribute(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class AttributeValue(models.Model):
+    attribute_value = models.CharField(max_length=100)
+    attribute = models.ForeignKey(Attribute, on_delete=models.CASCADE, related_name="attribute_value")
+
+    def __str__(self):
+        return f"{self.attribute.name}-{self.attribute_value}"
+
+
+# Link 테이블 N:M 관계를 1:N 1:N 으로 풀어냄
+class ProductLineAttributeValue(models.Model):
+    attribute_value = models.ForeignKey(
+        AttributeValue,
+        on_delete=models.CASCADE,
+        related_name="product_attribute_value_av",
+    )
+
+    product_line = models.ForeignKey(
+        "ProductLine",
+        on_delete=models.CASCADE,
+        related_name="product_attribute_value_pl",
+    )
+
+    class Meta:
+        unique_together = ("attribute_value", "product_line")
+
+
 class ProductLine(models.Model):
-    price = models.DecimalField(decimal_places=2, max_digits=8)
+    price = models.DecimalField(decimal_places=2, max_digits=5)
     sku = models.CharField(max_length=100)
     stock_qty = models.IntegerField()
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_line")
     is_active = models.BooleanField(default=False)
-    order = OrderField(blank=True, unique_for_field="product")
-    """
-    order = OrderField(blank=True)
-    makemigrations >
-        SystemCheckError: System check identified some issues:
-
-        ERRORS:
-        ?: OrderField는 'unique_for_field' 속성을 정의해야 합니다.
-    """
+    order = OrderField(unique_for_field="product", blank=True)
+    attribute_value = models.ManyToManyField(
+        AttributeValue,
+        through="ProductLineAttributeValue",
+        related_name="product_line_attribute_value",
+    )
     objects = ActiveQueryset.as_manager()
 
     def clean(self):
         qs = ProductLine.objects.filter(product=self.product)
         for obj in qs:
             if self.id != obj.id and self.order == obj.order:
-                raise ValidationError("order 값이 중복 됩니다.")
+                raise ValidationError("Duplicate value.")
 
     def save(self, *args, **kwargs):
         self.full_clean()
