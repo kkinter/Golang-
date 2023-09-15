@@ -47,6 +47,7 @@ class Product(models.Model):
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
     category = TreeForeignKey("Category", on_delete=models.SET_NULL, null=True, blank=True)
     is_active = models.BooleanField(default=False)
+    product_type = models.ForeignKey("ProductType", on_delete=models.PROTECT, related_name="product")
     objects = ActiveQueryset.as_manager()
     # isactive = ActiveManager()
 
@@ -70,7 +71,7 @@ class AttributeValue(models.Model):
         return f"{self.attribute.name}-{self.attribute_value}"
 
 
-# Link 테이블 N:M 관계를 1:N 1:N 으로 풀어냄
+# Link 테이블
 class ProductLineAttributeValue(models.Model):
     attribute_value = models.ForeignKey(
         AttributeValue,
@@ -134,3 +135,32 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return str(self.order)
+
+
+class ProductType(models.Model):
+    name = models.CharField(max_length=100)
+    attribute = models.ManyToManyField(
+        Attribute,
+        through="ProductTypeAttribute",
+        related_name="product_type_attribute",
+    )
+
+    def __str__(self):
+        return str(self.name)
+
+
+# Link Table
+class ProductTypeAttribute(models.Model):
+    product_type = models.ForeignKey(
+        ProductType,
+        on_delete=models.CASCADE,
+        related_name="product_type_attribute_pt",
+    )
+    attribute = models.ForeignKey(
+        Attribute,
+        on_delete=models.CASCADE,
+        related_name="product_type_attribute_a",
+    )
+
+    class Meta:
+        unique_together = ("product_type", "attribute")
