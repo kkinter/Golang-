@@ -44,8 +44,6 @@ class ProductViewSet(viewsets.ViewSet):
     모든 상품 조회를 위한 Viewset
     """
 
-    # queryset = Product.objects.all()
-    # queryset = Product.isactive.all()
     queryset = Product.objects.isactive()
 
     lookup_field = "slug"
@@ -57,7 +55,8 @@ class ProductViewSet(viewsets.ViewSet):
         serializer = ProductSerializer(
             Product.objects.filter(slug=slug)
             .select_related("category", "brand")
-            .prefetch_related(Prefetch("product_line__product_image")),
+            .prefetch_related(Prefetch("product_line__product_image"))
+            .prefetch_related(Prefetch("product_line__attribute_value__attribute")),
             many=True,
         )
         data = Response(serializer.data)
