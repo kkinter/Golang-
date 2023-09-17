@@ -15,18 +15,32 @@ services:
       - 8001:8000
     environment:
       - DEBUG=1
-      - SECRET_KEY=django-insecure-h+u(tvp0(0oa&w4=^9ybq5ytbbn^8a#rwcv$s6jz&rvc@*pq(u
+      - SECRET_KEY=django-insecure-h+u
       - ALLOWED_HOSTS=localhost,127.0.0.1
 
   celery:
     container_name: celery
     build:
       context: ./celeryprac
+    command: celery --app=celeryprac worker -l INFO -Q queue1
     volumes:
       - ./celeryprac:/usr/src/app/
     environment:
       - DEBUG=1
-      - SECRET_KEY=django-insecure-h+u(tvp0(0oa&w4=^9ybq5ytbbn^8a#rwcv$s6jz&rvc@*pq(u
+      - SECRET_KEY=django-insecure-h+u
       - ALLOWED_HOSTS=localhost,127.0.0.1
     depends_on:
       - redis
+      - django
+
+  celery2:
+    container_name: celery2
+    build:
+      context: ./celeryworker
+      dockerfile: Dockerfile
+    command: celery -A celery worker -l INFO -Q queue2
+    volumes:
+      - ./celeryworker:/usr/src/app/
+    depends_on:
+      - redis
+      - django
