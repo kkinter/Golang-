@@ -6,7 +6,7 @@ import axios from "axios";
 const SecondaryDraw = () => {
     const theme = useTheme();
 
-    axios.get("http://127.0.0.1:8000/api/server/select//?category=cat1").then(response => {
+    axios.get("http://127.0.0.1:8000/api/server/select/?category=cat1").then(response => {
       console.log(response.data)
     }).catch(error => {
       console.log(error)
