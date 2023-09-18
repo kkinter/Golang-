@@ -6,7 +6,7 @@ from .models import Channel, Server
 class ChannelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Channel
-        exclude = "__all__"
+        fields = "__all__"
 
 
 class ServerSerializer(serializers.ModelSerializer):
@@ -15,7 +15,7 @@ class ServerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Server
-        fields = ("member",)
+        exclude = ("member",)
 
     def get_num_members(self, obj):
         if hasattr(obj, "num_members"):

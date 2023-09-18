@@ -18,11 +18,11 @@ class ServerListViewSet(viewsets.ViewSet):
         이 메서드는 request 객체에 제공된 쿼리 매개변수를 기반으로 서버의 쿼리셋을 검색합니다.
         다음과 같은 쿼리 매개변수가 지원됩니다:
 
-        category: 카테고리 이름으로 서버를 필터링합니다.
-        qty: 반환되는 서버의 수를 제한합니다.
-        by_user: 사용자 ID에 따라 서버를 필터링하며, 사용자가 멤버인 서버만 반환합니다.
-        by_serverid: 서버 ID로 서버를 필터링합니다.
-        with_num_members: 각 서버에 멤버 수를 주석으로 추가합니다.
+        - `category`: 카테고리 이름으로 서버를 필터링합니다.
+        - `qty`: 반환되는 서버의 수를 제한합니다.
+        - `by_user`: 사용자 ID에 따라 서버를 필터링하며, 사용자가 멤버인 서버만 반환합니다.
+        - `by_serverid`: 서버 ID로 서버를 필터링합니다.
+        - `with_num_members`: 각 서버에 멤버 수를 주석으로 추가합니다.
         인수:
         request: 쿼리 매개변수가 포함된 Django Request 객체입니다.
 
@@ -37,11 +37,11 @@ class ServerListViewSet(viewsets.ViewSet):
         예시:
         '게임' 카테고리에서 적어도 5명의 멤버를 가진 모든 서버를 검색하려면 다음 요청을 수행할 수 있습니다:
 
-        GET /servers/?category=gaming&with_num_members=true&num_members__gte=5
+        ```GET /servers/?category=gaming&with_num_members=true&num_members__gte=5```
 
         인증된 사용자가 멤버인 첫 10개의 서버를 검색하려면 다음 요청을 수행할 수 있습니다:
 
-        GET /servers/?by_user=true&qty=10
+        ```GET /servers/?by_user=true&qty=10```
 
         """
         category = request.query_params.get("category")
