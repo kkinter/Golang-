@@ -4,6 +4,7 @@ import PrimaryDraw from "./templates/PrimaryDraw";
 import SecondaryDraw from "./templates/SecondaryDraw";
 import Main from "./templates/Main";
 import PopularChannels from "../components/PrimaryDraw/PopularChannels";
+import ExploreCategories from "../components/SecondaryDraw/ExploreCategories";
 
 const Home = () => {
 
@@ -12,9 +13,11 @@ const Home = () => {
             <CssBaseline />
             <PrimayAppBar />     
             <PrimaryDraw>
-                <PopularChannels />
+                <PopularChannels open={false}/>
             </PrimaryDraw> 
-            <SecondaryDraw />
+            <SecondaryDraw>
+                <ExploreCategories />
+            </SecondaryDraw>
             <Main />
         </Box>
     );
