@@ -14,9 +14,7 @@ func (app *application) creteMovieHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "show movies")
 	pathParams := chi.URLParam(r, "id")
-	fmt.Fprintf(w, "show movies: %s", pathParams)
 
 	movie := data.Movie{
 		ID:        pathParams,
