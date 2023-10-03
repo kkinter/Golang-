@@ -6,6 +6,7 @@ type Env struct {
 	Error string `json:"error"`
 }
 
+// print log error
 func (app *application) logError(r *http.Request, err error) {
 	app.logger.Print(err)
 }
