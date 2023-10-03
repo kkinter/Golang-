@@ -11,6 +11,7 @@ func (app *application) logError(r *http.Request, err error) {
 	app.logger.Print(err)
 }
 
+// error json
 func (app *application) errorResponse(w http.ResponseWriter, r *http.Request, status int, message any) {
 	var env Env
 
