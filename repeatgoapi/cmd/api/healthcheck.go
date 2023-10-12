@@ -4,6 +4,7 @@ import (
 	"net/http"
 )
 
+// health check
 func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Request) {
 	data := map[string]string{
 		"status":      "available",
