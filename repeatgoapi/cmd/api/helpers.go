@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-// jsno helper
+// jsno helper !
 func (app *application) writeJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 	js, err := json.MarshalIndent(data, "", "\t")
 	if err != nil {
