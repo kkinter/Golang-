@@ -33,6 +33,7 @@ func (app *application) writeJSON(w http.ResponseWriter, statusCode int, data an
 	return nil
 }
 
+// readJSON helpers
 func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any) error {
 	maxBytes := 1_048_576 // 1MB
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
