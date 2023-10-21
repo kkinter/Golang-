@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// write json helpers
 func (app *application) writeJSON(w http.ResponseWriter, statusCode int, data any, headers http.Header) error {
 
 	js, err := json.MarshalIndent(data, "", "\t")
